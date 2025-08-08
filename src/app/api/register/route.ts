@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcrypt";
 import { registerDTO } from "./dto/register.dto";
-import z from "zod";
 
 const prisma = new PrismaClient();
 
@@ -14,12 +13,12 @@ export async function POST(request: Request) {
 
         if (!parsed.success) {
             return NextResponse.json(
-                { errors: z.treeifyError(parsed.error)},
+                { errors: parsed.error.message },
                 { status: 400 }
             )
         }
 
-        const { name, email, password, cep } = parsed.data;
+        const { name, email, password, cep, city, state } = parsed.data;
 
         const existingUser = await prisma.user.findUnique({ 
             where: { email } 
@@ -36,27 +35,18 @@ export async function POST(request: Request) {
 
         const user = await prisma.user.create({
             data: {
-                name,
-                email,
-                password: hashedPassword,
-                cep,
+            name,
+            email,
+            password: hashedPassword,
+            ...(cep && city && state ? { cep, city, state } : {}),
             },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-            }
         })
+
+        const { password: _, ...userWithoutPassword } = user;
 
         return NextResponse.json({
             message: "User registered successfully",
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-            }
+            user: userWithoutPassword
         }, { status: 201 });
 
     } catch (error) {

@@ -3,18 +3,18 @@ import { PrismaClient } from "@prisma/client";
 import { compare } from "bcrypt";
 import { loginDTO } from "./dto/login.dto";
 import z from "zod";
+import { generateToken } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-
         const parsed = loginDTO.safeParse(body);
 
         if (!parsed.success) {
             return NextResponse.json(
-                { errors: z.treeifyError(parsed.error)},
+                { errors: parsed.error.message },
                 { status: 400 }
             )
         }
@@ -33,7 +33,6 @@ export async function POST(request: Request) {
         }
 
         const passwordMatch = await compare(password, user.password);
-
         if (!passwordMatch) {
             return NextResponse.json(
                 { error: "Invalid email or password." },
@@ -41,16 +40,25 @@ export async function POST(request: Request) {
             );
         }
 
-        return NextResponse.json({
+        const token = generateToken({ id: user.id, role: user.role})
+
+        const response = NextResponse.json({
             message: "Login successful",
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                cep: user.cep,
                 role: user.role,
             }
         }, { status: 200 });
+
+        response.cookies.set("token", token, {
+            httpOnly: true,
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7, // 1 week
+        })
+
+        return response;
         
     } catch (error) {
         console.error(error);
