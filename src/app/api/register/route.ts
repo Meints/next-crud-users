@@ -38,7 +38,9 @@ export async function POST(request: Request) {
             name,
             email,
             password: hashedPassword,
-            ...(cep && city && state ? { cep, city, state } : {}),
+            cep,
+            city,
+            state,
             },
         })
 

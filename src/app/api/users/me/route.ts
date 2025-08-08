@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { verifyToken } from "@/lib/auth";
 import { updateUserDTO } from "../dto/update-user.dto";
+import { hash } from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -53,9 +54,15 @@ export async function PUT(request: NextRequest) {
         );
     }
 
+    const dataToUpdate = { ...parsed.data }
+
+    if (dataToUpdate.password) {
+        dataToUpdate.password = await hash(dataToUpdate.password, 10);
+    }
+
     const updatedData = await prisma.user.update({
         where: { id: verified.id },
-        data: parsed.data,
+        data: dataToUpdate,
     })
 
     const { password, ...userWithoutPassword } = updatedData;
