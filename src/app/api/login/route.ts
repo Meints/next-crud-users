@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { compare } from "bcrypt";
 import { loginDTO } from "./dto/login.dto";
-import z from "zod";
 import { generateToken } from "@/lib/auth";
 
 const prisma = new PrismaClient();
